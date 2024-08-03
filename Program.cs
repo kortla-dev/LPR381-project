@@ -14,8 +14,8 @@ namespace LPR381Project
         static void Main()
         {
             // TODO: use lexer to tokenize and validate input file contents then pass to tableau ctor
-            
-            Console.WriteLine("Please enter a number:");
+            var lexer = new Lexer();
+            var tokens = lexer.GetTokens();
             
             var running = true;
             
@@ -26,7 +26,8 @@ namespace LPR381Project
                                   "3. Branch and Bound Simplex\n" +
                                   "4. Cutting Plane Algorithm\n" +
                                   "5. Branch and Bound Knapsack\n" +
-                                  "0. Exit");
+                                  "0. Exit\n");
+                Console.Write("Enter a number: ");
                 
                 // NOTE: input can be null but will be handled by the default case
                 string userInput = Console.ReadLine();
@@ -61,7 +62,7 @@ namespace LPR381Project
                     default:
                         // clears console and inform user of invalid input
                         Console.Clear();
-                        Console.Error.WriteLine("Invalid input please try again:");
+                        Console.WriteLine("Invalid input please try again");
                         continue;
                 }
                 
