@@ -10,12 +10,12 @@ namespace LPR381Project.Tokens
     {
         Max,
         Min,
-        Less,
-        Greater,
+        LessEq,
+        GreaterEq,
         Equal,
         Number,
-        Bin,
-        Int, // int is also >= 0 (NonNegative)
+        Bin, // is also >= 0 (NonNegative)
+        Int, // is also >= 0 (NonNegative)
         NonNegative,
         NewLine,
     }
@@ -24,10 +24,13 @@ namespace LPR381Project.Tokens
     {
         public static TokenKindEnum Max => TokenKindEnum.Max;
         public static TokenKindEnum Min => TokenKindEnum.Min;
-        public static TokenKindEnum Less => TokenKindEnum.Less;
-        public static TokenKindEnum Greater => TokenKindEnum.Greater;
+        public static TokenKindEnum Less => TokenKindEnum.LessEq;
+        public static TokenKindEnum Greater => TokenKindEnum.GreaterEq;
         public static TokenKindEnum Equal => TokenKindEnum.Equal;
         public static TokenKindEnum Number => TokenKindEnum.Number;
+        public static TokenKindEnum Bin => TokenKindEnum.Bin;
+        public static TokenKindEnum Int => TokenKindEnum.Int;
+        public static TokenKindEnum NonNegative => TokenKindEnum.NonNegative;
         public static TokenKindEnum NewLine => TokenKindEnum.NewLine;
     }
     internal class Token
@@ -80,8 +83,8 @@ namespace LPR381Project.Tokens
         {
             return sign switch
             {
-                "<=" => BuildToken(TokenKindEnum.Less, sign),
-                ">=" => BuildToken(TokenKindEnum.Greater, sign),
+                "<=" => BuildToken(TokenKindEnum.LessEq, sign),
+                ">=" => BuildToken(TokenKindEnum.GreaterEq, sign),
                 "=" => BuildToken(TokenKindEnum.Equal, sign),
                 _ => null
             };

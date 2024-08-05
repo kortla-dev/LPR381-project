@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using LPR381Project.Tokens;
+
 namespace LPR381Project.Common
 {
     /// <summary>
@@ -27,9 +29,9 @@ namespace LPR381Project.Common
         Greater,
         GreaterEq,
         Equal,
-        Urs,
         Bin,
         Int,
+        NonNegative,
     }
 
     /// <summary>
@@ -42,7 +44,9 @@ namespace LPR381Project.Common
         public static ConstraintEnum Greater => ConstraintEnum.Greater;
         public static ConstraintEnum GreaterEq => ConstraintEnum.GreaterEq;
         public static ConstraintEnum Equal => ConstraintEnum.Equal;
-        public static ConstraintEnum Urs => ConstraintEnum.Urs;
+        public static ConstraintEnum Bin => ConstraintEnum.Bin;
+        public static ConstraintEnum Int => ConstraintEnum.Int;
+        public static ConstraintEnum NonNegative => ConstraintEnum.NonNegative;
     }
 
     internal enum ProblemKindEnum
@@ -66,19 +70,93 @@ namespace LPR381Project.Common
         // Dynamically sized matrix
         private List<List<double>> table;
         private Dictionary<string, ConstraintEnum> constraints;
+        public int conCount { get; set; }
 
-        public Tableau(ProblemKindEnum kind, List<List<double>> table)
+        public Tableau(List<Token> tokens)
         {
-            this.kind = kind ;
+            List<List<Token>> problemTokens = new List<List<Token>>();
+            conCount = 0;
+            
+            int subListPtr = 0;
+            problemTokens.Add(new List<Token>());
+            foreach (Token token in tokens)
+            {
+                if(token.Kind != TokenKind.NewLine)
+                {
+                    problemTokens[subListPtr].Add(token);
+                }else
+                {
+                    problemTokens.Add(new List<Token>());
+                    subListPtr++;
+                }
+            }
+            
+            this.kind = Tableau.GetObjectiveKind(problemTokens[0][0]);
             this.table = new List<List<double>>();
+            
+            int ptr = 0;
+            this.table.Add(new List<double>());
             this.constraints = new Dictionary<string, ConstraintEnum>();
+            foreach(Token token in problemTokens[0])
+            { 
+                if (ptr == 0)
+                {
+                    ptr++;
+                    continue;
+                }
+                
+                this.constraints.Add($"x{ptr}", GetRestriction(problemTokens[^1][ptr-1]));
+                this.table[0].Add(double.Parse(token.Value));
+                ptr++;
+            }
+            this.table[0].Add(0.0); // adding rhs value
+
+            for(int i = 1; i<problemTokens.Count-1; i++) 
+            {
+                this.table.Add(new List<double>());
+                foreach(Token token in problemTokens[i]) 
+                {
+                    if(token.Kind != TokenKind.Number)
+                    {
+                        this.constraints.Add(conCount.ToString(), Tableau.GetConstraint(token));
+                        conCount++;
+                        continue;
+                    }
+
+                    this.table[i].Add(double.Parse(token.Value));
+                }
+            }
+
+        }
+
+        private static ProblemKindEnum GetObjectiveKind(Token token) 
+        {
+            return (token.Kind == TokenKind.Min)? ProblemKindEnum.Min: ProblemKindEnum.Max;
+        }
+
+        private static ConstraintEnum GetRestriction(Token token)
+        {
+            return token.Kind switch {
+                TokenKindEnum.Bin => Constraint.Bin,
+                TokenKindEnum.Int => Constraint.Int,
+                _ => Constraint.NonNegative,
+            };
+        }
+
+        private static ConstraintEnum GetConstraint(Token token)
+        {
+            return token.Kind switch {
+                TokenKindEnum.LessEq => Constraint.LesserEq,
+                TokenKindEnum.GreaterEq => Constraint.GreaterEq,
+                _ => Constraint.Equal,
+            };
         }
 
         /// <summary>
         /// Add objective function to the tableau.
         /// </summary>
         /// <param name="nums">Numbers representign the objective function</param>
-        void AddObjective(List<double> nums)
+        public void AddObjective(List<double> nums)
         {
             // HACK: might not be the best way to do this
             if (this.table.Count != 0)
@@ -97,7 +175,7 @@ namespace LPR381Project.Common
         /// </summary>
         /// <param name="nums">Numbers representing the constraint</param>
         /// <param name="sign">Sign of the constraint</param>
-        void AddConstraint(List<double> nums, ConstraintEnum sign)
+        public void AddConstraint(List<double> nums, ConstraintEnum sign)
         {
             // TODO: discuss if constraints should be stored as "con n" or just "n"
             
@@ -109,20 +187,36 @@ namespace LPR381Project.Common
                 Environment.Exit(1);
             }
 
-            string conNum = this.constraints.Count.ToString();
-            this.constraints.Add(conNum, sign);
+            this.constraints.Add(this.conCount.ToString(), sign);
+            this.conCount++;
+
+            this.table.Add(nums);
         }
         
         // TBD
-        void AddNewConstraint(List<double> nums) {}
+        public void AddNewConstraint(List<double> nums, ConstraintEnum sign) 
+        {
+            // Check for "normal" amount of constraints
+            if (this.constraints.Count > 100)
+            {
+                // lets be reasonable
+                Console.Error.WriteLine("Error: Cannot add more than 100 constraints.");
+                Environment.Exit(1);
+            }
 
-       // HACK: is adding the restrictions one at a time the best? 
+            this.constraints.Add(this.conCount.ToString(), sign);
+            this.conCount++;    
+
+            this.table.Add(nums);
+        }
+
+        // HACK: is adding the restrictions one at a time the best? 
         /// <summary>
         /// Add sign restriction for decision variables
         /// </summary>
         /// <param name="variable"></param>
         /// <param name="restriction"></param>
-        void AddRestriction(string variable, ConstraintEnum restriction)
+        public void AddRestriction(string variable, ConstraintEnum restriction)
         {
             if (this.constraints.ContainsKey(variable))
             {

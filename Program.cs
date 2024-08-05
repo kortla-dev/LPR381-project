@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using LPR381Project.Common;
 using LPR381Project.InputProcessing;
+using LPR381Project.Simplex.Primal;
 
 namespace LPR381Project
 {
@@ -16,6 +17,8 @@ namespace LPR381Project
             // TODO: use lexer to tokenize and validate input file contents then pass to tableau ctor
             var lexer = new Lexer();
             var tokens = lexer.GetTokens();
+
+            var table = new Tableau(tokens);
             
             var running = true;
             
