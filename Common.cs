@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LPR381Project.Tokens;
 
 namespace LPR381Project.Common
 {
@@ -20,27 +21,39 @@ namespace LPR381Project.Common
     /// <item><description>Urs: Represents a custom or special condition</description></item>
     /// </list>
     /// </summary>
-    internal enum SignEnum
+    internal enum ConstraintEnum
     {
-        Lesser,
         LesserEq,
-        Greater,
         GreaterEq,
         Equal,
-        Urs,
+        Bin,
+        Int,
+        NonNegative,
     }
 
     /// <summary>
-    /// This class is used to get enum variants from <see cref="SignEnum"/>
+    /// This class is used to get enum variants from <see cref="ConstraintEnum"/>
     /// </summary>
-    internal class Sign
+    internal class Constraint
     {
-        public static SignEnum Lesser => SignEnum.Lesser;
-        public static SignEnum LesserEq => SignEnum.LesserEq;
-        public static SignEnum Greater => SignEnum.Greater;
-        public static SignEnum GreaterEq => SignEnum.GreaterEq;
-        public static SignEnum Equal => SignEnum.Equal;
-        public static SignEnum Urs => SignEnum.Urs;
+        public static ConstraintEnum LesserEq => ConstraintEnum.LesserEq;
+        public static ConstraintEnum GreaterEq => ConstraintEnum.GreaterEq;
+        public static ConstraintEnum Equal => ConstraintEnum.Equal;
+        public static ConstraintEnum Bin => ConstraintEnum.Bin;
+        public static ConstraintEnum Int => ConstraintEnum.Int;
+        public static ConstraintEnum NonNegative => ConstraintEnum.NonNegative;
+    }
+
+    internal enum ProblemKindEnum
+    {
+        Min,
+        Max,
+    }
+
+    internal class ProblemKind
+    {
+        public static ProblemKindEnum Min => ProblemKindEnum.Min;
+        public static ProblemKindEnum Max => ProblemKindEnum.Max;
     }
 
     /// <summary>
@@ -48,21 +61,335 @@ namespace LPR381Project.Common
     /// </summary>
     internal class Tableau
     {
-        // Dynamically sized matrix
-        private List<List<double>> table;
-        private Dictionary<string, double> constraints;
+        public ProblemKindEnum kind { get; set; }
 
-        public Tableau()
+        // Dynamically sized matrix
+        public List<List<double>> table;
+        public Dictionary<string, ConstraintEnum> constraints;
+        public int ConCount { get; set; }
+
+        public Tableau(List<Token> tokens)
         {
+            List<List<Token>> problemTokens = new();
+            this.ConCount = 1;
+
+            int subListPtr = 0;
+            problemTokens.Add(new List<Token>());
+            foreach (Token token in tokens)
+            {
+                if (token.Kind != TokenKind.NewLine)
+                {
+                    problemTokens[subListPtr].Add(token);
+                }
+                else
+                {
+                    problemTokens.Add(new List<Token>());
+                    subListPtr++;
+                }
+            }
+
+            this.kind = Tableau.GetObjectiveKind(problemTokens[0][0]);
             this.table = new List<List<double>>();
-            this.constraints = new Dictionary<string, double>();
+
+            int ptr = 0;
+            this.table.Add(new List<double>());
+            this.constraints = new Dictionary<string, ConstraintEnum>();
+            foreach (Token token in problemTokens[0])
+            {
+                if (ptr == 0)
+                {
+                    ptr++;
+                    continue;
+                }
+
+                this.constraints.Add($"x{ptr}", GetRestriction(problemTokens[^1][ptr - 1]));
+                this.table[0].Add(double.Parse(token.Value));
+                ptr++;
+            }
+            this.table[0].Add(0.0); // adding rhs value
+
+            if(this.kind == ProblemKind.Max)
+            {
+                for(int i=0; i < this.table[0].Count; i++)
+                {
+                    this.table[0][i] *= -1;
+                }
+            }
+
+            // skip index 0 and n-1
+            for (int i = 1; i < problemTokens.Count - 1; i++)
+            {
+                // this.table.Add(new List<double>());
+                List<double> nums = new();
+                ConstraintEnum sign = Constraint.Equal; // default
+                foreach (Token token in problemTokens[i])
+                {
+                    if (token.Kind != TokenKind.Number)
+                    {
+                        //this.constraints.Add(ConCount.ToString(), Tableau.GetConstraint(token));
+                        //this.ConCount++;
+                        sign = Tableau.GetConstraint(token);
+                        continue;
+                    }
+
+                    nums.Add(double.Parse(token.Value));
+                }
+
+                this.AddConstraint(nums, sign);
+            }
+        }
+
+        private static ProblemKindEnum GetObjectiveKind(Token token)
+        {
+            return (token.Kind == TokenKind.Min) ? ProblemKindEnum.Min : ProblemKindEnum.Max;
+        }
+
+        private static ConstraintEnum GetRestriction(Token token)
+        {
+            return token.Kind switch
+            {
+                TokenKindEnum.Bin => Constraint.Bin,
+                TokenKindEnum.Int => Constraint.Int,
+                _ => Constraint.NonNegative,
+            };
+        }
+
+        private static ConstraintEnum GetConstraint(Token token)
+        {
+            return token.Kind switch
+            {
+                TokenKindEnum.LessEq => Constraint.LesserEq,
+                TokenKindEnum.GreaterEq => Constraint.GreaterEq,
+                _ => Constraint.Equal,
+            };
         }
 
         /// <summary>
-        /// Add constraint to the tableau
+        /// Add objective function to the tableau.
+        /// </summary>
+        /// <param name="nums">Numbers representign the objective function</param>
+        public void AddObjective(List<double> nums)
+        {
+            // HACK: might not be the best way to do this
+            if (this.table.Count != 0)
+            {
+                Console.Error.WriteLine(
+                    "Error: Tableau already has elements cannot add another objective function"
+                );
+                Environment.Exit(1);
+            }
+
+            this.table.Add(nums);
+        }
+
+        /// <summary>
+        /// Add constraint to the tableau.
+        ///
+        /// NOTE: this should only be used when creating the tableau
         /// </summary>
         /// <param name="nums">Numbers representing the constraint</param>
         /// <param name="sign">Sign of the constraint</param>
-        void add_con(List<double> nums, SignEnum sign) { }
+        public void AddConstraint(List<double> nums, ConstraintEnum sign)
+        {
+            // TODO: discuss if constraints should be stored as "con n" or just "n"
+
+            // Check for "normal" amount of constraints
+            if (this.constraints.Count > 100)
+            {
+                // lets be reasonable
+                Console.Error.WriteLine("Error: Cannot add more than 100 constraints.");
+                Environment.Exit(1);
+            }
+
+            this.constraints.Add(this.ConCount.ToString(), sign);
+
+            // adds new constraint column to other rows
+            int tableSize = this.table.Count;
+            for (int i = 0; i < tableSize; i++)
+            {
+                // insert before rhs value
+                this.table[i].Insert(this.table[i].Count - 1, 0.0);
+            }
+
+            // make constraint len match other rows
+            int matchLen = this.table[0].Count;
+            // number or other constraints (therefore -1 for how many to account for)
+            int diff = matchLen - nums.Count;
+            for (int i = 0; i < diff - 1; i++)
+            {
+                nums.Insert(nums.Count - 1, 0.0);
+            }
+            
+            // if e constraint
+            if (this.constraints[this.ConCount.ToString()] == ConstraintEnum.GreaterEq)
+            {
+                for(int i=0; i<nums.Count; i++)
+                {
+                    nums[i] *= -1;
+                }
+            }
+            this.ConCount++;
+
+            nums.Insert(nums.Count - 1, 1.0);
+
+            this.table.Add(nums);
+        }
+
+        // HACK: is adding the restrictions one at a time the best?
+        /// <summary>
+        /// Add sign restriction for decision variables
+        /// </summary>
+        /// <param name="variable"></param>
+        /// <param name="restriction"></param>
+        public void AddRestriction(string variable, ConstraintEnum restriction)
+        {
+            if (this.constraints.ContainsKey(variable))
+            {
+                Console.Error.WriteLine($"Error: Restriction already set for {variable}.");
+            }
+            this.constraints.Add(variable, restriction);
+        }
+
+        /// <summary>
+        /// if returned value is -1 then solution is optimal (probably)
+        /// </summary>
+        /// <returns></returns>
+        public int GetPivotCol()
+        {
+            int pivotCol = 0;
+            double val = 0;
+
+            if(this.kind == ProblemKind.Max)
+            {
+                bool hasNegative = false;
+                for(int i =0;  i<this.table.Count-1; i++)
+                {
+                    if (this.table[0][i] < val)
+                    {
+                        hasNegative = true;
+                        val = this.table[0][i];
+                        pivotCol = i;
+                    }
+                }
+
+                if(!hasNegative)
+                {
+                    return -1;
+                }
+
+                return pivotCol;
+            } else
+            {
+                for(int i = 0; i< this.table.Count-1; i++)
+                {
+                    if (this.table[0][i] > val)
+                    {
+                        val = this.table[0][i]; 
+                        pivotCol = i;
+                    }
+                }
+
+                return pivotCol;
+            }
+        }
+
+        public int GetPivotRow(int pivotCol)
+        {
+            // only 1 .. len(table)-1 are valid
+            int pivotRow = 1;
+            double val;
+            List<double> ratios = new();
+
+            if(this.kind == ProblemKind.Max)
+            {
+                for(int i=1; i < this.table.Count; i++)
+                {
+                    ratios.Add(this.table[i][^1]/(double)this.table[i][pivotCol]);
+                }
+            }
+
+            val = ratios.Max();
+
+            for(int i=0; i<ratios.Count; i++)
+            {
+                if(ratios[i] < 0)
+                {
+                    continue;
+                }
+
+
+
+                if(ratios[i] < val)
+                {
+                    val = ratios[i];
+                    pivotRow = i+1;
+                }
+            }
+
+            if(val == 0)
+            {
+                return -1;
+            }
+
+            return pivotRow;
+        }
+
+        public void PrintTable(int iteration)
+        {
+            var headers = new List<string>();
+            if(iteration == 0)
+            {
+                headers.Add("T-i");
+            } else
+            {
+                headers.Add($"T-{iteration}");
+            }
+
+            int numDecisionVar = this.table[0].Count-this.table.Count;
+            int numConstraints = this.table.Count-1;
+
+            for(int i=0; i<numDecisionVar; i++)
+            {
+                headers.Add($"x{i+1}");
+            }
+
+            for(int i=0;i<numConstraints; i++)
+            {
+                headers.Add($"con{i+1}");
+            }
+
+            headers.Add("RHS");
+
+            foreach (var header in headers)
+            {
+                Console.Write(header.PadLeft(8));
+                Console.Write(" ");
+            }
+
+            Console.WriteLine();
+
+            var rows = new List<string>();
+            rows.Add("z");
+
+            for(int i=0; i<numDecisionVar; i++)
+            {
+                rows.Add($"con{i+1}");
+            }
+
+            for (var i = 0; i < this.table.Count; i++)
+            {
+                Console.Write(rows[i].PadLeft(8));
+                Console.Write(" ");
+                foreach (var num in this.table[i])
+                {
+                    Console.Write(num.ToString().PadLeft(8));
+                    Console.Write(" ");
+                }
+
+                Console.WriteLine();
+            }
+
+            Console.WriteLine();
+        }
     }
 }
