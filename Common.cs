@@ -64,8 +64,8 @@ namespace LPR381Project.Common
         public ProblemKindEnum kind { get; set; }
 
         // Dynamically sized matrix
-        private List<List<double>> table;
-        private Dictionary<string, ConstraintEnum> constraints;
+        public List<List<double>> table;
+        public Dictionary<string, ConstraintEnum> constraints;
         public int ConCount { get; set; }
 
         public Tableau(List<Token> tokens)
@@ -107,6 +107,14 @@ namespace LPR381Project.Common
                 ptr++;
             }
             this.table[0].Add(0.0); // adding rhs value
+
+            if(this.kind == ProblemKind.Max)
+            {
+                for(int i=0; i < this.table[0].Count; i++)
+                {
+                    this.table[0][i] *= -1;
+                }
+            }
 
             // skip index 0 and n-1
             for (int i = 1; i < problemTokens.Count - 1; i++)
@@ -227,23 +235,6 @@ namespace LPR381Project.Common
             this.table.Add(nums);
         }
 
-        // TBD
-        public void AddNewConstraint(List<double> nums, ConstraintEnum sign)
-        {
-            // Check for "normal" amount of constraints
-            if (this.constraints.Count > 100)
-            {
-                // lets be reasonable
-                Console.Error.WriteLine("Error: Cannot add more than 100 constraints.");
-                Environment.Exit(1);
-            }
-
-            this.constraints.Add(this.ConCount.ToString(), sign);
-            this.ConCount++;
-
-            this.table.Add(nums);
-        }
-
         // HACK: is adding the restrictions one at a time the best?
         /// <summary>
         /// Add sign restriction for decision variables
@@ -257,6 +248,148 @@ namespace LPR381Project.Common
                 Console.Error.WriteLine($"Error: Restriction already set for {variable}.");
             }
             this.constraints.Add(variable, restriction);
+        }
+
+        /// <summary>
+        /// if returned value is -1 then solution is optimal (probably)
+        /// </summary>
+        /// <returns></returns>
+        public int GetPivotCol()
+        {
+            int pivotCol = 0;
+            double val = 0;
+
+            if(this.kind == ProblemKind.Max)
+            {
+                bool hasNegative = false;
+                for(int i =0;  i<this.table.Count-1; i++)
+                {
+                    if (this.table[0][i] < val)
+                    {
+                        hasNegative = true;
+                        val = this.table[0][i];
+                        pivotCol = i;
+                    }
+                }
+
+                if(!hasNegative)
+                {
+                    return -1;
+                }
+
+                return pivotCol;
+            } else
+            {
+                for(int i = 0; i< this.table.Count-1; i++)
+                {
+                    if (this.table[0][i] > val)
+                    {
+                        val = this.table[0][i]; 
+                        pivotCol = i;
+                    }
+                }
+
+                return pivotCol;
+            }
+        }
+
+        public int GetPivotRow(int pivotCol)
+        {
+            // only 1 .. len(table)-1 are valid
+            int pivotRow = 1;
+            double val;
+            List<double> ratios = new();
+
+            if(this.kind == ProblemKind.Max)
+            {
+                for(int i=1; i < this.table.Count; i++)
+                {
+                    ratios.Add(this.table[i][^1]/(double)this.table[i][pivotCol]);
+                }
+            }
+
+            val = ratios.Max();
+
+            for(int i=0; i<ratios.Count; i++)
+            {
+                if(ratios[i] < 0)
+                {
+                    continue;
+                }
+
+
+
+                if(ratios[i] < val)
+                {
+                    val = ratios[i];
+                    pivotRow = i+1;
+                }
+            }
+
+            if(val == 0)
+            {
+                return -1;
+            }
+
+            return pivotRow;
+        }
+
+        public void PrintTable(int iteration)
+        {
+            var headers = new List<string>();
+            if(iteration == 0)
+            {
+                headers.Add("T-i");
+            } else
+            {
+                headers.Add($"T-{iteration}");
+            }
+
+            int numDecisionVar = this.table[0].Count-this.table.Count;
+            int numConstraints = this.table.Count-1;
+
+            for(int i=0; i<numDecisionVar; i++)
+            {
+                headers.Add($"x{i+1}");
+            }
+
+            for(int i=0;i<numConstraints; i++)
+            {
+                headers.Add($"con{i+1}");
+            }
+
+            headers.Add("RHS");
+
+            foreach (var header in headers)
+            {
+                Console.Write(header.PadLeft(8));
+                Console.Write(" ");
+            }
+
+            Console.WriteLine();
+
+            var rows = new List<string>();
+            rows.Add("z");
+
+            for(int i=0; i<numDecisionVar; i++)
+            {
+                rows.Add($"con{i+1}");
+            }
+
+            for (var i = 0; i < this.table.Count; i++)
+            {
+                Console.Write(rows[i].PadLeft(8));
+                Console.Write(" ");
+                foreach (var num in this.table[i])
+                {
+                    Console.Write(num.ToString().PadLeft(8));
+                    Console.Write(" ");
+                }
+
+                Console.WriteLine();
+            }
+
+            Console.WriteLine();
         }
     }
 }
