@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 using LPR381Project.Tokens;
 
 namespace LPR381Project.Common
@@ -24,9 +23,7 @@ namespace LPR381Project.Common
     /// </summary>
     internal enum ConstraintEnum
     {
-        Lesser,
         LesserEq,
-        Greater,
         GreaterEq,
         Equal,
         Bin,
@@ -39,9 +36,7 @@ namespace LPR381Project.Common
     /// </summary>
     internal class Constraint
     {
-        public static ConstraintEnum Lesser => ConstraintEnum.Lesser;
         public static ConstraintEnum LesserEq => ConstraintEnum.LesserEq;
-        public static ConstraintEnum Greater => ConstraintEnum.Greater;
         public static ConstraintEnum GreaterEq => ConstraintEnum.GreaterEq;
         public static ConstraintEnum Equal => ConstraintEnum.Equal;
         public static ConstraintEnum Bin => ConstraintEnum.Bin;
@@ -67,76 +62,84 @@ namespace LPR381Project.Common
     internal class Tableau
     {
         public ProblemKindEnum kind { get; set; }
+
         // Dynamically sized matrix
         private List<List<double>> table;
         private Dictionary<string, ConstraintEnum> constraints;
-        public int conCount { get; set; }
+        public int ConCount { get; set; }
 
         public Tableau(List<Token> tokens)
         {
-            List<List<Token>> problemTokens = new List<List<Token>>();
-            conCount = 0;
-            
+            List<List<Token>> problemTokens = new();
+            this.ConCount = 1;
+
             int subListPtr = 0;
             problemTokens.Add(new List<Token>());
             foreach (Token token in tokens)
             {
-                if(token.Kind != TokenKind.NewLine)
+                if (token.Kind != TokenKind.NewLine)
                 {
                     problemTokens[subListPtr].Add(token);
-                }else
+                }
+                else
                 {
                     problemTokens.Add(new List<Token>());
                     subListPtr++;
                 }
             }
-            
+
             this.kind = Tableau.GetObjectiveKind(problemTokens[0][0]);
             this.table = new List<List<double>>();
-            
+
             int ptr = 0;
             this.table.Add(new List<double>());
             this.constraints = new Dictionary<string, ConstraintEnum>();
-            foreach(Token token in problemTokens[0])
-            { 
+            foreach (Token token in problemTokens[0])
+            {
                 if (ptr == 0)
                 {
                     ptr++;
                     continue;
                 }
-                
-                this.constraints.Add($"x{ptr}", GetRestriction(problemTokens[^1][ptr-1]));
+
+                this.constraints.Add($"x{ptr}", GetRestriction(problemTokens[^1][ptr - 1]));
                 this.table[0].Add(double.Parse(token.Value));
                 ptr++;
             }
             this.table[0].Add(0.0); // adding rhs value
 
-            for(int i = 1; i<problemTokens.Count-1; i++) 
+            // skip index 0 and n-1
+            for (int i = 1; i < problemTokens.Count - 1; i++)
             {
-                this.table.Add(new List<double>());
-                foreach(Token token in problemTokens[i]) 
+                // this.table.Add(new List<double>());
+                List<double> nums = new();
+                ConstraintEnum sign = Constraint.Equal; // default
+                foreach (Token token in problemTokens[i])
                 {
-                    if(token.Kind != TokenKind.Number)
+                    if (token.Kind != TokenKind.Number)
                     {
-                        this.constraints.Add(conCount.ToString(), Tableau.GetConstraint(token));
-                        conCount++;
+                        //this.constraints.Add(ConCount.ToString(), Tableau.GetConstraint(token));
+                        //this.ConCount++;
+                        sign = Tableau.GetConstraint(token);
                         continue;
                     }
 
-                    this.table[i].Add(double.Parse(token.Value));
+                    nums.Add(double.Parse(token.Value));
                 }
-            }
 
+                this.AddConstraint(nums, sign);
+            }
         }
 
-        private static ProblemKindEnum GetObjectiveKind(Token token) 
+        private static ProblemKindEnum GetObjectiveKind(Token token)
         {
-            return (token.Kind == TokenKind.Min)? ProblemKindEnum.Min: ProblemKindEnum.Max;
+            return (token.Kind == TokenKind.Min) ? ProblemKindEnum.Min : ProblemKindEnum.Max;
         }
 
         private static ConstraintEnum GetRestriction(Token token)
         {
-            return token.Kind switch {
+            return token.Kind switch
+            {
                 TokenKindEnum.Bin => Constraint.Bin,
                 TokenKindEnum.Int => Constraint.Int,
                 _ => Constraint.NonNegative,
@@ -145,7 +148,8 @@ namespace LPR381Project.Common
 
         private static ConstraintEnum GetConstraint(Token token)
         {
-            return token.Kind switch {
+            return token.Kind switch
+            {
                 TokenKindEnum.LessEq => Constraint.LesserEq,
                 TokenKindEnum.GreaterEq => Constraint.GreaterEq,
                 _ => Constraint.Equal,
@@ -161,10 +165,12 @@ namespace LPR381Project.Common
             // HACK: might not be the best way to do this
             if (this.table.Count != 0)
             {
-                Console.Error.WriteLine("Error: Tableau already has elements cannot add another objective function");
+                Console.Error.WriteLine(
+                    "Error: Tableau already has elements cannot add another objective function"
+                );
                 Environment.Exit(1);
             }
-            
+
             this.table.Add(nums);
         }
 
@@ -178,7 +184,7 @@ namespace LPR381Project.Common
         public void AddConstraint(List<double> nums, ConstraintEnum sign)
         {
             // TODO: discuss if constraints should be stored as "con n" or just "n"
-            
+
             // Check for "normal" amount of constraints
             if (this.constraints.Count > 100)
             {
@@ -187,14 +193,42 @@ namespace LPR381Project.Common
                 Environment.Exit(1);
             }
 
-            this.constraints.Add(this.conCount.ToString(), sign);
-            this.conCount++;
+            this.constraints.Add(this.ConCount.ToString(), sign);
+
+            // adds new constraint column to other rows
+            int tableSize = this.table.Count;
+            for (int i = 0; i < tableSize; i++)
+            {
+                // insert before rhs value
+                this.table[i].Insert(this.table[i].Count - 1, 0.0);
+            }
+
+            // make constraint len match other rows
+            int matchLen = this.table[0].Count;
+            // number or other constraints (therefore -1 for how many to account for)
+            int diff = matchLen - nums.Count;
+            for (int i = 0; i < diff - 1; i++)
+            {
+                nums.Insert(nums.Count - 1, 0.0);
+            }
+            
+            // if e constraint
+            if (this.constraints[this.ConCount.ToString()] == ConstraintEnum.GreaterEq)
+            {
+                for(int i=0; i<nums.Count; i++)
+                {
+                    nums[i] *= -1;
+                }
+            }
+            this.ConCount++;
+
+            nums.Insert(nums.Count - 1, 1.0);
 
             this.table.Add(nums);
         }
-        
+
         // TBD
-        public void AddNewConstraint(List<double> nums, ConstraintEnum sign) 
+        public void AddNewConstraint(List<double> nums, ConstraintEnum sign)
         {
             // Check for "normal" amount of constraints
             if (this.constraints.Count > 100)
@@ -204,13 +238,13 @@ namespace LPR381Project.Common
                 Environment.Exit(1);
             }
 
-            this.constraints.Add(this.conCount.ToString(), sign);
-            this.conCount++;    
+            this.constraints.Add(this.ConCount.ToString(), sign);
+            this.ConCount++;
 
             this.table.Add(nums);
         }
 
-        // HACK: is adding the restrictions one at a time the best? 
+        // HACK: is adding the restrictions one at a time the best?
         /// <summary>
         /// Add sign restriction for decision variables
         /// </summary>
@@ -221,7 +255,7 @@ namespace LPR381Project.Common
             if (this.constraints.ContainsKey(variable))
             {
                 Console.Error.WriteLine($"Error: Restriction already set for {variable}.");
-            } 
+            }
             this.constraints.Add(variable, restriction);
         }
     }
