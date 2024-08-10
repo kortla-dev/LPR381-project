@@ -28,35 +28,46 @@ namespace LPR381Project.Simplex.Primal
         {
             PivotKind status = PivotKind.SubOptimal;
 
-            this.table.PrintTable(iteration++);
+            // this.table.PrintTable(iteration);
+            this.table.WriteTable(iteration);
 
-            while(status != PivotKind.Optimal)
+            iteration++;
+
+            while (status != PivotKind.Optimal)
             {
                 status = this.Pivot();
-                this.table.PrintTable(iteration++);
+
+                if (status != PivotKind.Optimal)
+                {
+                    //this.table.PrintTable(iteration);
+                    this.table.WriteTable(iteration);
+
+                    iteration++;
+                }
             }
 
             Console.WriteLine();
         }
 
-        public PivotKind Pivot() {
-            double[][] tmpTable = this.table.table
-            .Select(innerList => innerList.ToArray())
-            .ToArray();
+        public PivotKind Pivot()
+        {
+            double[][] tmpTable = this
+                .table.table.Select(innerList => innerList.ToArray())
+                .ToArray();
 
             int pivotRow;
             int pivotCol;
 
             pivotCol = this.table.GetPivotCol();
-            
-            if(pivotCol == -1)
+
+            if (pivotCol == -1)
             {
                 return PivotKind.Optimal;
             }
 
             pivotRow = this.table.GetPivotRow(pivotCol);
 
-            if(pivotRow == -1)
+            if (pivotRow == -1)
             {
                 // TODO: return PivotKind.Infeasable instead of ending process here
                 Console.WriteLine($"Problem is infeasable at iteration {iteration}");
@@ -64,20 +75,23 @@ namespace LPR381Project.Simplex.Primal
             }
 
             // calculate the pivotRow
-            for(int i = 0; i < tmpTable[0].Length; i++)
+            for (int i = 0; i < tmpTable[0].Length; i++)
             {
-                this.table.table[pivotRow][i] = tmpTable[pivotRow][i]/(double)tmpTable[pivotRow][pivotCol];
+                var a = tmpTable[pivotRow][i];
+                var b = tmpTable[pivotRow][pivotCol];
+
+                this.table.table[pivotRow][i] = a / b;
             }
 
-            for(int row=0; row<tmpTable.Length; row++)
+            for (int row = 0; row < tmpTable.Length; row++)
             {
-                if(row == pivotRow)
+                if (row == pivotRow)
                 {
                     continue;
                 }
 
                 int rowSize = tmpTable[row].Length;
-                for(int col=0; col<rowSize; col++)
+                for (int col = 0; col < rowSize; col++)
                 {
                     var a = tmpTable[row][col];
                     var b = tmpTable[row][pivotCol];
@@ -86,7 +100,7 @@ namespace LPR381Project.Simplex.Primal
                     this.table.table[row][col] = a - (b * c);
                 }
             }
-            
+
             return PivotKind.SubOptimal;
         }
     }

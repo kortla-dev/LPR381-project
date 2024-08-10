@@ -30,6 +30,10 @@ namespace LPR381Project.InputProcessing
         {
             var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             var inputFile = Path.Combine(desktopPath, "input.txt");
+            var outputFile = Path.Combine(desktopPath, "output.txt");
+
+            // Truncates output file (technically)
+            File.WriteAllText(outputFile, string.Empty);
 
             // read file
             var inputFileContents = File.ReadAllLines(inputFile);

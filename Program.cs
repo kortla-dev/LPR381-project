@@ -81,8 +81,6 @@ namespace LPR381Project
 
             Console.Clear(); // clear console before prompting user
             // TODO: prompt user if they would like to do sensitivity analysis
-
-
         }
     }
 }

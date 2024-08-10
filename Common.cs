@@ -9,6 +9,7 @@ namespace LPR381Project.Common
 {
     /// <summary>
     /// This enum represents supported constraint types.
+    ///
     /// <para>NOTE: Do not use this enum directly. Retrieve enum variants with the <see cref="Sign"/> class instead.</para>
     /// <para>This enum is used for specifying various types of constraints, including:</para>
     ///
@@ -61,7 +62,7 @@ namespace LPR381Project.Common
     /// </summary>
     internal class Tableau
     {
-        public ProblemKindEnum kind { get; set; }
+        public ProblemKindEnum Kind { get; set; }
 
         // Dynamically sized matrix
         public List<List<double>> table;
@@ -88,7 +89,7 @@ namespace LPR381Project.Common
                 }
             }
 
-            this.kind = Tableau.GetObjectiveKind(problemTokens[0][0]);
+            this.Kind = Tableau.GetObjectiveKind(problemTokens[0][0]);
             this.table = new List<List<double>>();
 
             int ptr = 0;
@@ -106,15 +107,16 @@ namespace LPR381Project.Common
                 this.table[0].Add(double.Parse(token.Value));
                 ptr++;
             }
-            this.table[0].Add(0.0); // adding rhs value
 
-            if(this.kind == ProblemKind.Max)
+            if (this.Kind == ProblemKind.Max)
             {
-                for(int i=0; i < this.table[0].Count; i++)
+                for (int i = 0; i < this.table[0].Count; i++)
                 {
                     this.table[0][i] *= -1;
                 }
             }
+
+            this.table[0].Add(0.0); // adding rhs value
 
             // skip index 0 and n-1
             for (int i = 1; i < problemTokens.Count - 1; i++)
@@ -219,11 +221,11 @@ namespace LPR381Project.Common
             {
                 nums.Insert(nums.Count - 1, 0.0);
             }
-            
+
             // if e constraint
             if (this.constraints[this.ConCount.ToString()] == ConstraintEnum.GreaterEq)
             {
-                for(int i=0; i<nums.Count; i++)
+                for (int i = 0; i < nums.Count; i++)
                 {
                     nums[i] *= -1;
                 }
@@ -259,10 +261,10 @@ namespace LPR381Project.Common
             int pivotCol = 0;
             double val = 0;
 
-            if(this.kind == ProblemKind.Max)
+            if (this.Kind == ProblemKind.Max)
             {
                 bool hasNegative = false;
-                for(int i =0;  i<this.table.Count-1; i++)
+                for (int i = 0; i < this.table.Count - 1; i++)
                 {
                     if (this.table[0][i] < val)
                     {
@@ -272,19 +274,20 @@ namespace LPR381Project.Common
                     }
                 }
 
-                if(!hasNegative)
+                if (!hasNegative)
                 {
                     return -1;
                 }
 
                 return pivotCol;
-            } else
+            }
+            else
             {
-                for(int i = 0; i< this.table.Count-1; i++)
+                for (int i = 0; i < this.table.Count - 1; i++)
                 {
                     if (this.table[0][i] > val)
                     {
-                        val = this.table[0][i]; 
+                        val = this.table[0][i];
                         pivotCol = i;
                     }
                 }
@@ -300,33 +303,31 @@ namespace LPR381Project.Common
             double val;
             List<double> ratios = new();
 
-            if(this.kind == ProblemKind.Max)
+            if (this.Kind == ProblemKind.Max)
             {
-                for(int i=1; i < this.table.Count; i++)
+                for (int i = 1; i < this.table.Count; i++)
                 {
-                    ratios.Add(this.table[i][^1]/(double)this.table[i][pivotCol]);
+                    ratios.Add(this.table[i][^1] / (double)this.table[i][pivotCol]);
                 }
             }
 
             val = ratios.Max();
 
-            for(int i=0; i<ratios.Count; i++)
+            for (int i = 0; i < ratios.Count; i++)
             {
-                if(ratios[i] < 0)
+                if (ratios[i] < 0)
                 {
                     continue;
                 }
 
-
-
-                if(ratios[i] < val)
+                if (ratios[i] < val)
                 {
                     val = ratios[i];
-                    pivotRow = i+1;
+                    pivotRow = i + 1;
                 }
             }
 
-            if(val == 0)
+            if (val == 0)
             {
                 return -1;
             }
@@ -337,25 +338,27 @@ namespace LPR381Project.Common
         public void PrintTable(int iteration)
         {
             var headers = new List<string>();
-            if(iteration == 0)
+
+            if (iteration == 0)
             {
                 headers.Add("T-i");
-            } else
+            }
+            else
             {
                 headers.Add($"T-{iteration}");
             }
 
-            int numDecisionVar = this.table[0].Count-this.table.Count;
-            int numConstraints = this.table.Count-1;
+            int numDecisionVar = this.table[0].Count - this.table.Count;
+            int numConstraints = this.table.Count - 1;
 
-            for(int i=0; i<numDecisionVar; i++)
+            for (int i = 0; i < numDecisionVar; i++)
             {
-                headers.Add($"x{i+1}");
+                headers.Add($"x{i + 1}");
             }
 
-            for(int i=0;i<numConstraints; i++)
+            for (int i = 0; i < numConstraints; i++)
             {
-                headers.Add($"con{i+1}");
+                headers.Add($"con{i + 1}");
             }
 
             headers.Add("RHS");
@@ -371,9 +374,9 @@ namespace LPR381Project.Common
             var rows = new List<string>();
             rows.Add("z");
 
-            for(int i=0; i<numDecisionVar; i++)
+            for (int i = 0; i < numDecisionVar; i++)
             {
-                rows.Add($"con{i+1}");
+                rows.Add($"con{i + 1}");
             }
 
             for (var i = 0; i < this.table.Count; i++)
@@ -390,6 +393,79 @@ namespace LPR381Project.Common
             }
 
             Console.WriteLine();
+        }
+
+        public void WriteTable(int iteration)
+        {
+            var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            var outputFile = Path.Combine(desktopPath, "output.txt");
+
+            try
+            {
+                using (StreamWriter writer = new StreamWriter(outputFile, true, Encoding.UTF8))
+                {
+                    var headers = new List<string>();
+
+                    if (iteration == 0)
+                    {
+                        headers.Add("T-i");
+                    }
+                    else
+                    {
+                        headers.Add($"T-{iteration}");
+                    }
+
+                    int numDecisionVar = this.table[0].Count - this.table.Count;
+                    int numConstraints = this.table.Count - 1;
+
+                    for (int i = 0; i < numDecisionVar; i++)
+                    {
+                        headers.Add($"x{i + 1}");
+                    }
+
+                    for (int i = 0; i < numConstraints; i++)
+                    {
+                        headers.Add($"con{i + 1}");
+                    }
+
+                    headers.Add("RHS");
+
+                    foreach (var header in headers)
+                    {
+                        writer.Write(header.PadLeft(8));
+                        writer.Write(" ");
+                    }
+
+                    writer.WriteLine();
+
+                    var rows = new List<string>();
+                    rows.Add("z");
+
+                    for (int i = 0; i < numDecisionVar; i++)
+                    {
+                        rows.Add($"con{i + 1}");
+                    }
+
+                    for (var i = 0; i < this.table.Count; i++)
+                    {
+                        writer.Write(rows[i].PadLeft(8));
+                        writer.Write(" ");
+                        foreach (var num in this.table[i])
+                        {
+                            writer.Write(num.ToString().PadLeft(8));
+                            writer.Write(" ");
+                        }
+
+                        writer.WriteLine();
+                    }
+
+                    writer.WriteLine();
+                }
+            }
+            catch (Exception err)
+            {
+                Console.WriteLine(err);
+            }
         }
     }
 }
