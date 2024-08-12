@@ -335,6 +335,61 @@ namespace LPR381Project.Common
             return pivotRow;
         }
 
+        public int CountVars()
+        {
+            return this.table[0].Count - this.table.Count;
+        }
+
+        public int CountCons()
+        {
+            return this.table.Count - 1;
+        }
+
+        public int LenRows()
+        {
+            return this.table[0].Count;
+        }
+
+        public bool IsBasic(int colIndex)
+        {
+            int len = this.table.Count;
+
+            int ones = 0;
+
+            for (int row = 0; row < len; row++)
+            {
+                var val = this.table[row][colIndex];
+
+                if (val == 0.0)
+                {
+                    continue;
+                }
+                else if (val == 1.0)
+                {
+                    if (ones >= 1)
+                    {
+                        return false;
+                    }
+
+                    ones += 1;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public (int, int) GetSize()
+        {
+            int rows = this.table.Count;
+            int cols = this.table[0].Count;
+
+            return (rows, cols);
+        }
+
         public void PrintTable(int iteration)
         {
             var headers = new List<string>();
@@ -348,8 +403,8 @@ namespace LPR381Project.Common
                 headers.Add($"T-{iteration}");
             }
 
-            int numDecisionVar = this.table[0].Count - this.table.Count;
-            int numConstraints = this.table.Count - 1;
+            int numDecisionVar = this.CountVars();
+            int numConstraints = this.CountCons();
 
             for (int i = 0; i < numDecisionVar; i++)
             {
@@ -404,8 +459,10 @@ namespace LPR381Project.Common
             {
                 using (StreamWriter writer = new StreamWriter(outputFile, true, Encoding.UTF8))
                 {
+                    int padding = 10;
                     var headers = new List<string>();
 
+                    // Tableau iteration
                     if (iteration == 0)
                     {
                         headers.Add("T-i");
@@ -415,14 +472,17 @@ namespace LPR381Project.Common
                         headers.Add($"T-{iteration}");
                     }
 
+                    // get number of variables and constrainsts
                     int numDecisionVar = this.table[0].Count - this.table.Count;
                     int numConstraints = this.table.Count - 1;
 
+                    // add decision variables to column headers
                     for (int i = 0; i < numDecisionVar; i++)
                     {
                         headers.Add($"x{i + 1}");
                     }
 
+                    // add constraints to column headers
                     for (int i = 0; i < numConstraints; i++)
                     {
                         headers.Add($"con{i + 1}");
@@ -432,7 +492,7 @@ namespace LPR381Project.Common
 
                     foreach (var header in headers)
                     {
-                        writer.Write(header.PadLeft(8));
+                        writer.Write(header.PadLeft(padding));
                         writer.Write(" ");
                     }
 
@@ -441,6 +501,7 @@ namespace LPR381Project.Common
                     var rows = new List<string>();
                     rows.Add("z");
 
+                    // add constraints to row header
                     for (int i = 0; i < numDecisionVar; i++)
                     {
                         rows.Add($"con{i + 1}");
@@ -448,11 +509,11 @@ namespace LPR381Project.Common
 
                     for (var i = 0; i < this.table.Count; i++)
                     {
-                        writer.Write(rows[i].PadLeft(8));
+                        writer.Write(rows[i].PadLeft(padding));
                         writer.Write(" ");
                         foreach (var num in this.table[i])
                         {
-                            writer.Write(num.ToString().PadLeft(8));
+                            writer.Write(Math.Round(num, 3).ToString().PadLeft(padding));
                             writer.Write(" ");
                         }
 

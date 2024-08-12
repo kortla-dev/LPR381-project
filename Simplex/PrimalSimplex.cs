@@ -24,7 +24,8 @@ namespace LPR381Project.Simplex.Primal
             this.table = table;
         }
 
-        public void Solve()
+        // TODO: return void since be are editing the table passe and not creating a new one
+        public Tableau Solve()
         {
             PivotKind status = PivotKind.SubOptimal;
 
@@ -47,6 +48,8 @@ namespace LPR381Project.Simplex.Primal
             }
 
             Console.WriteLine();
+
+            return this.table;
         }
 
         public PivotKind Pivot()
