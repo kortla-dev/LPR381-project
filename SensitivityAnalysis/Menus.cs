@@ -53,17 +53,127 @@ namespace LPR381Project.SensitivityAnalysis.Menus
                     }
                 }
 
-                conIdx -= 1;
+                // conIdx -= 1;
 
                 Console.Write("Enter new RHS value: ");
 
                 // TODO: validate input
                 var inputVal = Console.ReadLine();
 
-                prelims.b[conIdx] = double.Parse(inputVal);
+                prelims.initial[conIdx][^1] = double.Parse(inputVal);
 
                 running = false;
             }
+
+            prelims.Calculate();
+        }
+
+        public static void RangeOfBasic(Prelims prelims)
+        {
+            for (int idx = 0; idx < prelims.Xbv.Count; idx++)
+            {
+                string var = prelims.optimal.colToVar[prelims.Xbv[idx]];
+                Console.WriteLine($"{var}: {(int)prelims.Nt[0, prelims.Xbv[idx]]}");
+            }
+        }
+
+        public static void RangeOfNonBasic(Prelims prelims)
+        {
+            for (int idx = 0; idx < prelims.Xnbv.Count; idx++)
+            {
+                string var = prelims.optimal.colToVar[prelims.Xnbv[idx]];
+                Console.WriteLine($"{var}: {(int)prelims.Nt[0, prelims.Xnbv[idx]]}");
+            }
+        }
+
+        public static void ChangeBasicCoef(Prelims prelims)
+        {
+            int numBasic = prelims.Xbv.Count;
+
+            bool running = true;
+
+            while (running)
+            {
+                for (int basics = 0; basics < numBasic; basics++)
+                {
+                    string varName = prelims.optimal.colToVar[prelims.Xbv[basics]];
+                    Console.WriteLine($"{basics + 1}. {varName}");
+                }
+
+                Console.Write("Enter a number: ");
+
+                var inputIdx = Console.ReadLine();
+
+                int conIdx;
+
+                if (int.TryParse(inputIdx, out conIdx))
+                {
+                    if (conIdx < 0 || conIdx > prelims.Xbv.Count)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("Invalid option please try again");
+                        continue;
+                    }
+                }
+
+                conIdx--;
+
+                Console.Write("Enter new value: ");
+
+                // TODO: validate input
+                var inputVal = Console.ReadLine();
+
+                prelims.initial[0][prelims.Xbv[conIdx]] = double.Parse(inputVal);
+
+                running = false;
+            }
+
+            prelims.Calculate();
+        }
+
+        public static void ChangeNonBasicCoef(Prelims prelims)
+        {
+            int numNonBasic = prelims.Xnbv.Count;
+
+            bool running = true;
+
+            while (running)
+            {
+                for (int basics = 0; basics < numNonBasic; basics++)
+                {
+                    string varName = prelims.optimal.colToVar[prelims.Xnbv[basics]];
+                    Console.WriteLine($"{basics + 1}. {varName}");
+                }
+
+                Console.Write("Enter a number: ");
+
+                var inputIdx = Console.ReadLine();
+
+                int conIdx;
+
+                if (int.TryParse(inputIdx, out conIdx))
+                {
+                    if (conIdx < 0 || conIdx > prelims.Xbv.Count)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("Invalid option please try again");
+                        continue;
+                    }
+                }
+
+                conIdx--;
+
+                Console.Write("Enter new value: ");
+
+                // TODO: validate input
+                var inputVal = Console.ReadLine();
+
+                prelims.initial[0][prelims.Xnbv[conIdx]] = double.Parse(inputVal);
+
+                running = false;
+            }
+
+            prelims.Calculate();
         }
     }
 }

@@ -67,6 +67,8 @@ namespace LPR381Project.Common
         // Dynamically sized matrix
         public List<List<double>> table;
         public Dictionary<string, ConstraintEnum> constraints;
+        public Dictionary<string, int> varToIdx;
+        public Dictionary<int, string> colToVar;
         public int ConCount { get; set; }
 
         public Tableau(List<Token> tokens)
@@ -138,6 +140,57 @@ namespace LPR381Project.Common
                 }
 
                 this.AddConstraint(nums, sign);
+            }
+
+            // int numVars = this.CountVars();
+            //
+            // for (int i = 0; i < numVars; i++)
+            // {
+            //     if (this.constraints[$"x{i + 1}"] == ConstraintEnum.Bin)
+            //     {
+            //         List<double> numTmp = new();
+            //         for (int var = 0; var < numVars; var++)
+            //         {
+            //             if (i == var)
+            //             {
+            //                 numTmp.Add(1.0);
+            //             }
+            //             else
+            //             {
+            //                 numTmp.Add(0.0);
+            //             }
+            //         }
+            //
+            //         numTmp.Add(1.0);
+            //
+            //         this.AddConstraint(numTmp, Constraint.LesserEq);
+            //     }
+            // }
+
+            this.colToVar = new Dictionary<int, string>();
+            this.varToIdx = new Dictionary<string, int>();
+
+            int numVars = this.CountVars();
+            int numCons = this.CountCons();
+            int numVarCon = numVars + numCons;
+
+            int varCount = 0;
+            int conCount = 0;
+
+            for (int col = 0; col < numVarCon; col++)
+            {
+                if (col < numVars)
+                {
+                    varCount++;
+                    this.colToVar.Add(col, $"x{varCount}");
+                    this.varToIdx.Add($"x{varCount}", col);
+                }
+                else
+                {
+                    conCount++;
+                    this.colToVar.Add(col, $"con{conCount}");
+                    this.varToIdx.Add($"con{conCount}", col);
+                }
             }
         }
 
@@ -307,11 +360,22 @@ namespace LPR381Project.Common
             {
                 for (int i = 1; i < this.table.Count; i++)
                 {
-                    ratios.Add(this.table[i][^1] / (double)this.table[i][pivotCol]);
+                    double a = this.table[i][^1];
+                    double b = this.table[i][pivotCol];
+                    double c = a / b;
+
+                    if (Double.IsInfinity(c))
+                    {
+                        ratios.Add(Double.NaN);
+                    }
+                    else
+                    {
+                        ratios.Add(c);
+                    }
                 }
             }
 
-            val = ratios.Max();
+            val = ratios.Max() + 1;
 
             for (int i = 0; i < ratios.Count; i++)
             {
@@ -473,8 +537,8 @@ namespace LPR381Project.Common
                     }
 
                     // get number of variables and constrainsts
-                    int numDecisionVar = this.table[0].Count - this.table.Count;
-                    int numConstraints = this.table.Count - 1;
+                    int numDecisionVar = this.CountVars();
+                    int numConstraints = this.CountCons();
 
                     // add decision variables to column headers
                     for (int i = 0; i < numDecisionVar; i++)
@@ -502,7 +566,7 @@ namespace LPR381Project.Common
                     rows.Add("z");
 
                     // add constraints to row header
-                    for (int i = 0; i < numDecisionVar; i++)
+                    for (int i = 0; i < numConstraints; i++)
                     {
                         rows.Add($"con{i + 1}");
                     }

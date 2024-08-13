@@ -52,30 +52,11 @@ namespace LPR381Project.Simplex.Primal
             return this.table;
         }
 
-        public PivotKind Pivot()
+        public void ManualPivot(int pivotRow, int pivotCol)
         {
             double[][] tmpTable = this
-                .table.table.Select(innerList => innerList.ToArray())
-                .ToArray();
-
-            int pivotRow;
-            int pivotCol;
-
-            pivotCol = this.table.GetPivotCol();
-
-            if (pivotCol == -1)
-            {
-                return PivotKind.Optimal;
-            }
-
-            pivotRow = this.table.GetPivotRow(pivotCol);
-
-            if (pivotRow == -1)
-            {
-                // TODO: return PivotKind.Infeasable instead of ending process here
-                Console.WriteLine($"Problem is infeasable at iteration {iteration}");
-                Environment.Exit(1);
-            }
+                           .table.table.Select(innerList => innerList.ToArray())
+                           .ToArray();
 
             // calculate the pivotRow
             for (int i = 0; i < tmpTable[0].Length; i++)
@@ -103,6 +84,31 @@ namespace LPR381Project.Simplex.Primal
                     this.table.table[row][col] = a - (b * c);
                 }
             }
+        }
+
+        public PivotKind Pivot()
+        {
+
+            int pivotRow;
+            int pivotCol;
+
+            pivotCol = this.table.GetPivotCol();
+
+            if (pivotCol == -1)
+            {
+                return PivotKind.Optimal;
+            }
+
+            pivotRow = this.table.GetPivotRow(pivotCol);
+
+            if (pivotRow == -1)
+            {
+                // TODO: return PivotKind.Infeasable instead of ending process here
+                Console.WriteLine($"Problem is infeasable at iteration {iteration}");
+                Environment.Exit(1);
+            }
+
+            this.ManualPivot(pivotRow, pivotCol);
 
             return PivotKind.SubOptimal;
         }

@@ -6,10 +6,7 @@ namespace LPR381Project.SensitivityAnalysis.Preliminaries
     internal class Prelims
     {
         public Tableau optimal;
-        double[][] initial;
-
-        // TODO: remove
-        Dictionary<string, int> indicies;
+        public double[][] initial;
 
         public List<int> Xbv;
         public List<int> Xnbv;
@@ -21,6 +18,8 @@ namespace LPR381Project.SensitivityAnalysis.Preliminaries
         public Vector<double> CbvBInv;
         public Matrix<double> N;
 
+        public Matrix<double> Nt;
+
         public Prelims(Tableau optimal, double[][] initial)
         {
             this.optimal = optimal;
@@ -29,20 +28,26 @@ namespace LPR381Project.SensitivityAnalysis.Preliminaries
             int numVars = this.optimal.CountVars();
             int numCons = this.optimal.CountCons();
 
-            this.indicies = new Dictionary<string, int>();
-
-            // add var indecies
-            for (int i = 0; i < numVars; i++)
+            if (numVars != numCons)
             {
-                this.indicies.Add($"x{i + 1}", i);
+                Console.WriteLine("Cannot inverse a non-square matrix");
+                Environment.Exit(0);
             }
 
-            for (int i = 0; i < numCons; i++)
-            {
-                this.indicies.Add($"con{i + 1}c", numVars + i);
-                this.indicies.Add($"con{i + 1}r", i + 1);
-            }
+            this.Xbv = new List<int>();
+            this.Xnbv = new List<int>();
+            this.Cbv = Vector<double>.Build.Dense(1);
+            this.Cnbv = Vector<double>.Build.Dense(1);
+            this.b = Vector<double>.Build.Dense(1);
+            this.B = Matrix<double>.Build.Dense(1, 1);
+            this.BInv = Matrix<double>.Build.Dense(1, 1);
+            this.CbvBInv = Vector<double>.Build.Dense(1);
+            this.N = Matrix<double>.Build.Dense(1, 1);
+            this.Nt = Matrix<double>.Build.Dense(1, 1);
+        }
 
+        public void Calculate()
+        {
             this.Xbv = this.GetXbv();
             this.Xnbv = this.GetXnbv();
             this.Cbv = this.GetCbv();
@@ -59,6 +64,7 @@ namespace LPR381Project.SensitivityAnalysis.Preliminaries
             // Console.WriteLine("CbvB^-1\n" + $"{this.CbvBInv}");
             this.N = this.GetN();
             // Console.WriteLine("N\n" + $"{this.N}");
+            this.Nt = this.NewTable();
         }
 
         private List<int> GetXbv()

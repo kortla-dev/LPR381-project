@@ -15,13 +15,6 @@ namespace LPR381Project
     {
         static void Main()
         {
-            double[,] mat =
-            {
-                { 1, 0, 1 },
-                { 2, -2, -1 },
-                { 3, 0, 0 },
-            };
-
             // TODO: use lexer to tokenize and validate input file contents then pass to tableau ctor
             var lexer = new Lexer();
             var tokens = lexer.GetTokens();
@@ -114,10 +107,19 @@ namespace LPR381Project
             running = true;
 
             var prelims = new Prelims(table, initial);
+            prelims.Calculate();
 
             while (running)
             {
-                Console.WriteLine("1. Shadow Prices\n" + "2. Change RHS value\n" + "0. Exit\n");
+                Console.WriteLine(
+                    "1. Shadow Prices\n"
+                        + "2. Change RHS value\n"
+                        + "3. Basic var range\n"
+                        + "4. Non-basic var range\n"
+                        + "5. Change coef of basic variable\n"
+                        + "6. Change coef of non-basic variable\n"
+                        + "0. Exit\n"
+                );
 
                 Console.WriteLine(prelims.NewTable());
 
@@ -139,9 +141,25 @@ namespace LPR381Project
                     case "2":
                         Menus.ChangeRhs(prelims);
                         Console.WriteLine(prelims.NewTable());
+                        break;
 
-                        Console.ReadKey();
-                        Console.Clear();
+                    case "3":
+                        Menus.RangeOfBasic(prelims);
+                        break;
+
+                    case "4":
+                        Menus.RangeOfNonBasic(prelims);
+
+                        break;
+
+                    case "5":
+                        Menus.ChangeBasicCoef(prelims);
+                        Console.WriteLine(prelims.NewTable());
+                        break;
+
+                    case "6":
+                        Menus.ChangeNonBasicCoef(prelims);
+                        Console.WriteLine(prelims.NewTable());
                         break;
 
                     default:
@@ -150,6 +168,9 @@ namespace LPR381Project
                         Console.WriteLine("Invalid input please try again");
                         continue;
                 }
+
+                Console.ReadKey();
+                Console.Clear();
             }
         }
     }
