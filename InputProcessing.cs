@@ -42,6 +42,8 @@ namespace LPR381Project.InputProcessing
             if (inputFileContents.Length == 0)
             {
                 Console.Error.WriteLine("Error: Input file is empty.");
+
+                Console.ReadKey();
                 Environment.Exit(1);
             }
 
@@ -66,6 +68,8 @@ namespace LPR381Project.InputProcessing
             if (objKind == null)
             {
                 Console.Error.WriteLine("Error: Invalid token.");
+
+                Console.ReadKey();
                 Environment.Exit(1);
             }
 
@@ -82,6 +86,8 @@ namespace LPR381Project.InputProcessing
                     Console.Error.WriteLine(
                         "Error: Invalid format, make sure that each number has one or less opperators"
                     );
+
+                    Console.ReadKey();
                     Environment.Exit(1);
                 }
                 else
@@ -112,8 +118,9 @@ namespace LPR381Project.InputProcessing
 
                     if (resSign == null)
                     {
-                        Console.Error.WriteLine("test");
                         Console.Error.WriteLine($"Error: invalid input {item}");
+
+                        Console.ReadKey();
                         Environment.Exit(1);
                     }
                     else

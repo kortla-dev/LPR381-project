@@ -71,6 +71,15 @@ namespace LPR381Project.Common
         public Dictionary<int, string> colToVar;
         public int ConCount { get; set; }
 
+        public Tableau()
+        {
+            this.table = new List<List<double>>();
+            this.constraints = new Dictionary<string, ConstraintEnum>();
+            this.varToIdx = new Dictionary<string, int>();
+            this.colToVar = new Dictionary<int, string>();
+            this.ConCount = 1;
+        }
+
         public Tableau(List<Token> tokens)
         {
             List<List<Token>> problemTokens = new();
@@ -142,31 +151,6 @@ namespace LPR381Project.Common
                 this.AddConstraint(nums, sign);
             }
 
-            // int numVars = this.CountVars();
-            //
-            // for (int i = 0; i < numVars; i++)
-            // {
-            //     if (this.constraints[$"x{i + 1}"] == ConstraintEnum.Bin)
-            //     {
-            //         List<double> numTmp = new();
-            //         for (int var = 0; var < numVars; var++)
-            //         {
-            //             if (i == var)
-            //             {
-            //                 numTmp.Add(1.0);
-            //             }
-            //             else
-            //             {
-            //                 numTmp.Add(0.0);
-            //             }
-            //         }
-            //
-            //         numTmp.Add(1.0);
-            //
-            //         this.AddConstraint(numTmp, Constraint.LesserEq);
-            //     }
-            // }
-
             this.colToVar = new Dictionary<int, string>();
             this.varToIdx = new Dictionary<string, int>();
 
@@ -222,7 +206,7 @@ namespace LPR381Project.Common
         /// <summary>
         /// Add objective function to the tableau.
         /// </summary>
-        /// <param name="nums">Numbers representign the objective function</param>
+        /// <param name="nums">Numbers representing the objective function</param>
         public void AddObjective(List<double> nums)
         {
             // HACK: might not be the best way to do this
@@ -231,6 +215,8 @@ namespace LPR381Project.Common
                 Console.Error.WriteLine(
                     "Error: Tableau already has elements cannot add another objective function"
                 );
+
+                Console.ReadKey();
                 Environment.Exit(1);
             }
 
@@ -240,7 +226,6 @@ namespace LPR381Project.Common
         /// <summary>
         /// Add constraint to the tableau.
         ///
-        /// NOTE: this should only be used when creating the tableau
         /// </summary>
         /// <param name="nums">Numbers representing the constraint</param>
         /// <param name="sign">Sign of the constraint</param>
@@ -253,6 +238,8 @@ namespace LPR381Project.Common
             {
                 // lets be reasonable
                 Console.Error.WriteLine("Error: Cannot add more than 100 constraints.");
+
+                Console.ReadKey();
                 Environment.Exit(1);
             }
 
@@ -290,7 +277,6 @@ namespace LPR381Project.Common
             this.table.Add(nums);
         }
 
-        // HACK: is adding the restrictions one at a time the best?
         /// <summary>
         /// Add sign restriction for decision variables
         /// </summary>
@@ -349,6 +335,11 @@ namespace LPR381Project.Common
             }
         }
 
+        /// <summary>
+        /// Gets the index for the pivot row (primal simplex)
+        /// </summary>
+        /// <param name="pivotCol">Index for the pivot column</param>
+        /// <returns>Integer</returns>
         public int GetPivotRow(int pivotCol)
         {
             // only 1 .. len(table)-1 are valid
@@ -399,21 +390,38 @@ namespace LPR381Project.Common
             return pivotRow;
         }
 
+        /// <summary>
+        /// Returns the number of decision variables in the tableau
+        /// </summary>
+        /// <returns>Integer</returns>
         public int CountVars()
         {
             return this.table[0].Count - this.table.Count;
         }
 
+        /// <summary>
+        /// Returns the number of constraints in the tableau
+        /// </summary>
+        /// <returns>Integer</returns>
         public int CountCons()
         {
             return this.table.Count - 1;
         }
 
+        /// <summary>
+        /// Returns the number of columns in the tableau
+        /// </summary>
+        /// <returns>Integer</returns>
         public int LenRows()
         {
             return this.table[0].Count;
         }
 
+        /// <summary>
+        /// Checks if the variable at the specified column is basic or not
+        /// </summary>
+        /// <param name="colIndex">Index for variable to check</param>
+        /// <returns>boolean value</returns>
         public bool IsBasic(int colIndex)
         {
             int len = this.table.Count;
@@ -446,6 +454,10 @@ namespace LPR381Project.Common
             return true;
         }
 
+        /// <summary>
+        /// Gets the size of the tableau
+        /// </summary>
+        /// <returns></returns>
         public (int, int) GetSize()
         {
             int rows = this.table.Count;
@@ -514,6 +526,10 @@ namespace LPR381Project.Common
             Console.WriteLine();
         }
 
+        /// <summary>
+        /// write tableau instance to the output.txt fiel
+        /// </summary>
+        /// <param name="iteration">Current iteration</param>
         public void WriteTable(int iteration)
         {
             var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);

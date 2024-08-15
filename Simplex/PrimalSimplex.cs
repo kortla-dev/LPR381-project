@@ -55,8 +55,8 @@ namespace LPR381Project.Simplex.Primal
         public void ManualPivot(int pivotRow, int pivotCol)
         {
             double[][] tmpTable = this
-                           .table.table.Select(innerList => innerList.ToArray())
-                           .ToArray();
+                .table.table.Select(innerList => innerList.ToArray())
+                .ToArray();
 
             // calculate the pivotRow
             for (int i = 0; i < tmpTable[0].Length; i++)
@@ -88,7 +88,6 @@ namespace LPR381Project.Simplex.Primal
 
         public PivotKind Pivot()
         {
-
             int pivotRow;
             int pivotCol;
 
@@ -105,6 +104,8 @@ namespace LPR381Project.Simplex.Primal
             {
                 // TODO: return PivotKind.Infeasable instead of ending process here
                 Console.WriteLine($"Problem is infeasable at iteration {iteration}");
+
+                Console.ReadKey();
                 Environment.Exit(1);
             }
 
