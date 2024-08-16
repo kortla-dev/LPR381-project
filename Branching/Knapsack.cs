@@ -114,8 +114,8 @@ namespace LPR381Project.Branching.Knapsack
             for (int i = 0; i < length; i++)
             {
                 current[0, i] = i + 1;               // Index
-                current[1, i] = table[0][i];         // Z function coefficients
-                current[2, i] = table[1][i];         // Constraint coefficients
+                current[1, i] = table.table[0][i];         // Z function coefficients
+                current[2, i] = table.table[1][i];         // Constraint coefficients
                 current[3, i] = 0;                   // Flag for included or not
                 current[4, i] = 0;                   // Pinned or not
                 current[5, i] = 0;                   // Ratio (Z/Constraint)
@@ -141,7 +141,7 @@ namespace LPR381Project.Branching.Knapsack
                 }
                 else
                 {
-                    current[4, i] = 1; // Pin it (branching would involve more logic)
+                    current[4, i] = 1; // Pin it (//add this instance into a libary to deal with in a future itteration branching would involve more logic)
                 }
 
                 // Calculate the candidate value as the sum of the flagged Z coefficients
@@ -149,6 +149,28 @@ namespace LPR381Project.Branching.Knapsack
             }
 
             // Additional logic for branching and further iterations would be added here
+           
+
         }
+        public void DisplayKnapsack(double[,] knapsackTable)
+        {
+            int rows = knapsackTable.GetLength(0);
+            int columns = knapsackTable.GetLength(1);
+
+            // Display the headers
+            Console.WriteLine("Index\tZ Coeff\tConstraint\tIncluded\tPinned\tRatio");
+
+            // Display the data
+            for (int col = 0; col < columns; col++)
+            {
+                for (int row = 0; row < rows; row++)
+                {
+                    Console.Write($"{knapsackTable[row, col]:F2}\t");
+                }
+                Console.WriteLine();
+            }
+        }
+
     }
+    
 }
