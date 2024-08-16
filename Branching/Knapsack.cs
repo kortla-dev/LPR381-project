@@ -90,6 +90,7 @@ namespace LPR381Project.Branching.Knapsack
 **/
 using System;
 using System.Collections.Generic;
+using System.Transactions;
 using LPR381Project.Common;
 
 namespace LPR381Project.Branching.Knapsack
@@ -137,12 +138,18 @@ namespace LPR381Project.Branching.Knapsack
                 double result = RHS - current[2, i];
                 if (result > 0)
                 {
+                    double value = current[2, i];
                     current[3, i] = 1; // Flag it as included
+                    
                 }
                 else
                 {
                     current[4, i] = 1; // Pin it (//add this instance into a libary to deal with in a future itteration branching would involve more logic)
                 }
+                DisplayKnapsack(current);
+                
+                
+
 
                 // Calculate the candidate value as the sum of the flagged Z coefficients
                 // This could be done outside of the loop or with more logic
